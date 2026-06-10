@@ -1,11 +1,644 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AL SYED — Admin Panel</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AL SYED — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0a; --bg2: #131313; --bg3: #1a1a1a; --border: #2a2a2a;
+    --red: #8B0000; --red-bright: #c0392b;
+    --text: #f0ede8; --text-muted: #888; --text-dim: #555;
+    --green: #2d6a2d; --green-bright: #5cb85c;
+    --font: 'DM Sans', sans-serif;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 15px; line-height: 1.6; min-height: 100vh; }
+
+  /* LOGIN SCREEN */
+  #login-screen {
+    position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 40px;
+  }
+  .login-logo { font-size: 12px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; color: var(--text-muted); }
+  .login-logo span { color: var(--red-bright); }
+  .login-box { width: 100%; max-width: 360px; border: 1px solid var(--border); background: var(--bg2); padding: 40px; }
+  .login-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .login-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 32px; letter-spacing: 1px; text-transform: uppercase; }
+  .login-box input {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--font); font-size: 15px; padding: 14px 16px; margin-bottom: 16px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .login-box input:focus { border-color: var(--red-bright); }
+  .login-box input::placeholder { color: var(--text-dim); }
+  .btn-primary {
+    width: 100%; background: var(--red); border: none; color: var(--text);
+    font-family: var(--font); font-size: 13px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; padding: 14px; cursor: pointer; transition: background 0.2s;
+  }
+  .btn-primary:hover { background: var(--red-bright); }
+  .login-error { color: var(--red-bright); font-size: 13px; margin-top: 12px; display: none; }
+
+  /* ADMIN LAYOUT */
+  #admin-screen { display: none; min-height: 100vh; }
+  .admin-header {
+    border-bottom: 1px solid var(--border); background: var(--bg);
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 40px; height: 60px;
+  }
+  .admin-logo { font-size: 12px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; color: var(--text-muted); }
+  .admin-logo span { color: var(--red-bright); }
+  .admin-badge { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; background: var(--red); color: var(--text); padding: 4px 10px; margin-left: 12px; }
+  .btn-logout {
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    font-family: var(--font); font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; padding: 6px 16px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-logout:hover { border-color: var(--red-bright); color: var(--red-bright); }
+
+  .admin-body { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 60px); }
+
+  /* SIDEBAR */
+  .sidebar { border-right: 1px solid var(--border); background: var(--bg2); padding: 32px 0; }
+  .sidebar-label { font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--text-dim); padding: 0 24px; margin-bottom: 12px; }
+  .sidebar-item {
+    display: block; width: 100%; text-align: left; background: transparent; border: none;
+    color: var(--text-muted); font-family: var(--font); font-size: 13px; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase; padding: 12px 24px; cursor: pointer;
+    transition: all 0.15s; border-left: 2px solid transparent;
+  }
+  .sidebar-item:hover { color: var(--text); background: var(--bg3); }
+  .sidebar-item.active { color: var(--text); border-left-color: var(--red-bright); background: var(--bg3); }
+  .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* MAIN CONTENT */
+  .main { padding: 48px 56px; }
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-title { font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+  .page-heading { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 40px; }
+
+  /* FORM STYLES */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .form-group { display: flex; flex-direction: column; gap: 8px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
+  .form-label .required { color: var(--red-bright); margin-left: 4px; }
+  .form-input, .form-select, .form-textarea {
+    background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--font); font-size: 15px; padding: 12px 16px;
+    outline: none; transition: border-color 0.2s; width: 100%;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--red-bright); }
+  .form-input::placeholder, .form-textarea::placeholder { color: var(--text-dim); }
+  .form-select { appearance: none; cursor: pointer; }
+  .form-select option { background: var(--bg3); }
+  .form-textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+  .form-textarea.tall { min-height: 220px; }
+  .form-hint { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  .form-section { margin-bottom: 40px; padding-bottom: 40px; border-bottom: 1px solid var(--border); }
+  .form-section-title { font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--red-bright); margin-bottom: 24px; }
+  .form-actions { display: flex; gap: 16px; align-items: center; margin-top: 40px; }
+  .btn-submit {
+    background: var(--red); border: none; color: var(--text);
+    font-family: var(--font); font-size: 12px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; padding: 14px 40px; cursor: pointer; transition: background 0.2s;
+  }
+  .btn-submit:hover { background: var(--red-bright); }
+  .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary {
+    background: transparent; border: 1px solid var(--border); color: var(--text-muted);
+    font-family: var(--font); font-size: 12px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; padding: 14px 32px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--text-muted); color: var(--text); }
+
+  /* IMAGE UPLOAD */
+  .img-upload-area {
+    border: 1px dashed var(--border); background: var(--bg3); padding: 32px;
+    text-align: center; cursor: pointer; transition: border-color 0.2s; position: relative;
+  }
+  .img-upload-area:hover { border-color: var(--text-muted); }
+  .img-upload-area input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .img-upload-icon { font-size: 32px; margin-bottom: 8px; color: var(--text-dim); }
+  .img-upload-text { font-size: 13px; color: var(--text-muted); }
+  .img-upload-text span { color: var(--red-bright); }
+  .img-preview { max-width: 100%; max-height: 200px; display: block; margin-top: 16px; border: 1px solid var(--border); }
+
+  /* STATUS / TOAST */
+  #toast {
+    position: fixed; bottom: 32px; right: 32px; z-index: 9999;
+    background: var(--bg2); border: 1px solid var(--border);
+    padding: 16px 24px; font-size: 13px; font-weight: 600;
+    letter-spacing: 1px; display: none; max-width: 360px;
+  }
+  #toast.success { border-color: var(--green); color: var(--green-bright); }
+  #toast.error { border-color: var(--red-bright); color: var(--red-bright); }
+
+  /* CASES LIST */
+  .cases-list { display: flex; flex-direction: column; gap: 1px; background: var(--border); border: 1px solid var(--border); }
+  .case-item { background: var(--bg); padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .case-item:hover { background: var(--bg2); }
+  .case-item-title { font-size: 15px; font-weight: 600; }
+  .case-item-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .case-tag { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; border: 1px solid var(--border); color: var(--text-muted); }
+  .case-tag.resolved { border-color: var(--green); color: var(--green-bright); }
+  .case-tag.ongoing { border-color: #8B6000; color: #f0a500; }
+  .empty-state { padding: 60px; text-align: center; color: var(--text-dim); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
+
+  /* SETTINGS */
+  .settings-box { background: var(--bg2); border: 1px solid var(--border); padding: 32px; margin-bottom: 24px; max-width: 560px; }
+  .settings-box h3 { font-size: 14px; font-weight: 700; margin-bottom: 20px; letter-spacing: 1px; }
+  .settings-row { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+
+  @media (max-width: 900px) {
+    .admin-body { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .main { padding: 32px 20px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .admin-header { padding: 0 20px; }
+  }
+</style>
 </head>
 <body>
-  <script src="https://unpkg.com/netlify-cms@^2.0.0/dist/netlify-cms.js"></script>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-logo"><span>AL</span> SYED</div>
+  <div class="login-box">
+    <div class="login-title">Admin Panel</div>
+    <div class="login-sub">Team Access Only</div>
+    <input type="text" id="login-user" placeholder="Username" autocomplete="off">
+    <input type="password" id="login-pass" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-primary" onclick="doLogin()">Enter Panel</button>
+    <div class="login-error" id="login-error">Invalid credentials. Try again.</div>
+  </div>
+</div>
+
+<!-- ADMIN SCREEN -->
+<div id="admin-screen">
+  <header class="admin-header">
+    <div style="display:flex;align-items:center;">
+      <span class="admin-logo"><span>AL</span> SYED — Cases</span>
+      <span class="admin-badge">Admin</span>
+    </div>
+    <button class="btn-logout" onclick="doLogout()">Log Out</button>
+  </header>
+
+  <div class="admin-body">
+    <aside class="sidebar">
+      <div class="sidebar-label">Content</div>
+      <button class="sidebar-item active" onclick="showPage('new-case',this)">+ New Case</button>
+      <button class="sidebar-item" onclick="showPage('all-cases',this)">All Cases</button>
+      <hr class="sidebar-divider">
+      <div class="sidebar-label">System</div>
+      <button class="sidebar-item" onclick="showPage('settings',this)">Settings</button>
+    </aside>
+
+    <main class="main">
+
+      <!-- NEW CASE PAGE -->
+      <div class="page active" id="page-new-case">
+        <div class="page-title">Content</div>
+        <div class="page-heading">Publish New Case</div>
+
+        <div class="form-section">
+          <div class="form-section-title">Basic Information</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Title (English)<span class="required">*</span></label>
+              <input type="text" class="form-input" id="f-title-en" placeholder="Case title in English">
+            </div>
+            <div class="form-group">
+              <label class="form-label">عنوان (اردو)<span class="required">*</span></label>
+              <input type="text" class="form-input" id="f-title-ur" placeholder="اردو میں عنوان" dir="rtl">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Category<span class="required">*</span></label>
+              <select class="form-select" id="f-category">
+                <option value="">Select category...</option>
+                <option value="OSINT">OSINT</option>
+                <option value="Legal">Legal</option>
+                <option value="Media">Media</option>
+                <option value="Community">Community</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Case Outcome<span class="required">*</span></label>
+              <select class="form-select" id="f-outcome">
+                <option value="">Select outcome...</option>
+                <option value="resolved">Resolved ✓</option>
+                <option value="ongoing">Ongoing ⏳</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input type="month" class="form-input" id="f-date">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Author</label>
+              <input type="text" class="form-input" id="f-author" value="AL SYED Team">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Outcome Detail (English)</label>
+              <input type="text" class="form-input" id="f-outcome-en" placeholder="e.g. Case resolved after legal intervention">
+            </div>
+            <div class="form-group">
+              <label class="form-label">نتیجہ (اردو)</label>
+              <input type="text" class="form-input" id="f-outcome-ur" placeholder="اردو میں نتیجہ" dir="rtl">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Cover Photo</div>
+          <div class="img-upload-area" id="upload-area">
+            <input type="file" accept="image/*" id="f-cover" onchange="previewImage(this)">
+            <div class="img-upload-icon">📷</div>
+            <div class="img-upload-text">Drop image here or <span>browse</span></div>
+            <div class="form-hint" style="margin-top:8px;">JPG, PNG or WebP — max 2MB</div>
+            <img class="img-preview" id="img-preview" src="" alt="" style="display:none">
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Summary</div>
+          <div class="form-grid">
+            <div class="form-group full">
+              <label class="form-label">Summary (English)<span class="required">*</span></label>
+              <textarea class="form-textarea" id="f-summary-en" placeholder="Brief summary of the case in English..."></textarea>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">خلاصہ (اردو)<span class="required">*</span></label>
+              <textarea class="form-textarea" id="f-summary-ur" placeholder="اردو میں خلاصہ..." dir="rtl"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="form-section-title">Full Article Body</div>
+          <div class="form-grid">
+            <div class="form-group full">
+              <label class="form-label">Full Body (English)<span class="required">*</span></label>
+              <textarea class="form-textarea tall" id="f-body-en" placeholder="Write the full case article in English. Use double line breaks for paragraphs."></textarea>
+              <div class="form-hint">Wrap paragraphs in &lt;p&gt; tags for best formatting, or leave plain text.</div>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">مکمل مضمون (اردو)<span class="required">*</span></label>
+              <textarea class="form-textarea tall" id="f-body-ur" placeholder="اردو میں مکمل مضمون لکھیں..." dir="rtl"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section" style="border:none;margin:0;padding:0;">
+          <div class="form-section-title">Publishing Options</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Feature this case?</label>
+              <select class="form-select" id="f-featured">
+                <option value="false">No</option>
+                <option value="true">Yes — Show as Featured</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-select" id="f-published">
+                <option value="true">Published — Live on site</option>
+                <option value="false">Draft — Hidden</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-submit" id="publish-btn" onclick="publishCase()">Publish Case</button>
+          <button class="btn-secondary" onclick="clearForm()">Clear Form</button>
+          <span id="publish-status" style="font-size:13px;color:var(--text-muted);"></span>
+        </div>
+      </div>
+
+      <!-- ALL CASES PAGE -->
+      <div class="page" id="page-all-cases">
+        <div class="page-title">Content</div>
+        <div class="page-heading">All Cases</div>
+        <div id="cases-list-container"><div class="empty-state">Loading cases...</div></div>
+      </div>
+
+      <!-- SETTINGS PAGE -->
+      <div class="page" id="page-settings">
+        <div class="page-title">System</div>
+        <div class="page-heading">Settings</div>
+        <div class="settings-box">
+          <h3>GitHub Configuration</h3>
+          <div class="settings-row">
+            <label class="form-label">GitHub Token (Personal Access Token)</label>
+            <input type="password" class="form-input" id="s-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+            <div class="form-hint">Needs repo write access. Stored in your browser only.</div>
+          </div>
+          <div class="settings-row">
+            <label class="form-label">Repository Owner</label>
+            <input type="text" class="form-input" id="s-owner" placeholder="abbasahmed9343-dev">
+          </div>
+          <div class="settings-row">
+            <label class="form-label">Repository Name</label>
+            <input type="text" class="form-input" id="s-repo" placeholder="al-syed-cases">
+          </div>
+          <div class="settings-row">
+            <label class="form-label">Branch</label>
+            <input type="text" class="form-input" id="s-branch" placeholder="main">
+          </div>
+          <button class="btn-primary" style="width:auto;padding:12px 32px;" onclick="saveSettings()">Save Settings</button>
+        </div>
+        <div class="settings-box">
+          <h3>Change Admin Password</h3>
+          <div class="settings-row">
+            <label class="form-label">New Username</label>
+            <input type="text" class="form-input" id="s-new-user" placeholder="New username">
+          </div>
+          <div class="settings-row">
+            <label class="form-label">New Password</label>
+            <input type="password" class="form-input" id="s-new-pass" placeholder="New password">
+          </div>
+          <button class="btn-primary" style="width:auto;padding:12px 32px;" onclick="changePassword()">Update Credentials</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ── DEFAULT CREDENTIALS (change in settings after first login) ──
+const DEFAULT_USER = 'alsyed';
+const DEFAULT_PASS = 'alsyed2025';
+
+// ── AUTH ──
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const savedUser = localStorage.getItem('as_user') || DEFAULT_USER;
+  const savedPass = localStorage.getItem('as_pass') || DEFAULT_PASS;
+  if (u === savedUser && p === savedPass) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+    loadSettings();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+function doLogout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+}
+
+// ── NAVIGATION ──
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'all-cases') loadCasesList();
+  if (name === 'settings') loadSettings();
+}
+
+// ── SETTINGS ──
+function loadSettings() {
+  document.getElementById('s-token').value = localStorage.getItem('gh_token') || '';
+  document.getElementById('s-owner').value = localStorage.getItem('gh_owner') || 'abbasahmed9343-dev';
+  document.getElementById('s-repo').value = localStorage.getItem('gh_repo') || 'al-syed-cases';
+  document.getElementById('s-branch').value = localStorage.getItem('gh_branch') || 'main';
+}
+function saveSettings() {
+  localStorage.setItem('gh_token', document.getElementById('s-token').value.trim());
+  localStorage.setItem('gh_owner', document.getElementById('s-owner').value.trim());
+  localStorage.setItem('gh_repo', document.getElementById('s-repo').value.trim());
+  localStorage.setItem('gh_branch', document.getElementById('s-branch').value.trim());
+  showToast('Settings saved.', 'success');
+}
+function changePassword() {
+  const u = document.getElementById('s-new-user').value.trim();
+  const p = document.getElementById('s-new-pass').value;
+  if (!u || !p) { showToast('Enter both username and password.', 'error'); return; }
+  localStorage.setItem('as_user', u);
+  localStorage.setItem('as_pass', p);
+  showToast('Credentials updated.', 'success');
+}
+
+// ── IMAGE PREVIEW ──
+function previewImage(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('img-preview');
+    prev.src = e.target.result; prev.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── SLUG GENERATOR ──
+function toSlug(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+// ── FORMAT DATE ──
+function formatDate(val) {
+  if (!val) return '';
+  const [y, m] = val.split('-');
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  return months[parseInt(m)-1] + ' ' + y;
+}
+
+// ── PUBLISH CASE ──
+async function publishCase() {
+  const titleEn = document.getElementById('f-title-en').value.trim();
+  const titleUr = document.getElementById('f-title-ur').value.trim();
+  const category = document.getElementById('f-category').value;
+  const outcome = document.getElementById('f-outcome').value;
+  const summaryEn = document.getElementById('f-summary-en').value.trim();
+  const summaryUr = document.getElementById('f-summary-ur').value.trim();
+  const bodyEn = document.getElementById('f-body-en').value.trim();
+  const bodyUr = document.getElementById('f-body-ur').value.trim();
+
+  if (!titleEn || !titleUr || !category || !outcome || !summaryEn || !summaryUr || !bodyEn || !bodyUr) {
+    showToast('Please fill in all required fields.', 'error'); return;
+  }
+
+  const token = localStorage.getItem('gh_token');
+  if (!token) {
+    showToast('GitHub token not set. Go to Settings first.', 'error'); return;
+  }
+
+  const btn = document.getElementById('publish-btn');
+  const status = document.getElementById('publish-status');
+  btn.disabled = true; status.textContent = 'Publishing...';
+
+  try {
+    const owner = localStorage.getItem('gh_owner') || 'abbasahmed9343-dev';
+    const repo = localStorage.getItem('gh_repo') || 'al-syed-cases';
+    const branch = localStorage.getItem('gh_branch') || 'main';
+    const slug = toSlug(titleEn) || 'case-' + Date.now();
+    const date = formatDate(document.getElementById('f-date').value);
+    const author = document.getElementById('f-author').value.trim() || 'AL SYED Team';
+    const outcomeEn = document.getElementById('f-outcome-en').value.trim();
+    const outcomeUr = document.getElementById('f-outcome-ur').value.trim();
+    const featured = document.getElementById('f-featured').value;
+    const published = document.getElementById('f-published').value;
+
+    // Handle cover image upload
+    let coverPath = '';
+    const coverFile = document.getElementById('f-cover').files[0];
+    if (coverFile) {
+      status.textContent = 'Uploading cover image...';
+      const imgData = await fileToBase64(coverFile);
+      const imgName = slug + '-' + Date.now() + '.' + coverFile.name.split('.').pop();
+      const imgPath = 'alsyed-cases/public/uploads/' + imgName;
+      await githubPut(token, owner, repo, branch, imgPath, imgData.split(',')[1], 'Upload cover: ' + imgName);
+      coverPath = '/uploads/' + imgName;
+    }
+
+    // Build JSON case file
+    const caseData = {
+      slug, title_en: titleEn, title_ur: titleUr,
+      category, outcome, outcome_detail_en: outcomeEn, outcome_detail_ur: outcomeUr,
+      date, author, cover: coverPath,
+      summary_en: summaryEn, summary_ur: summaryUr,
+      body_en: bodyEn.includes('<p>') ? bodyEn : '<p>' + bodyEn.split('\n\n').join('</p><p>') + '</p>',
+      body_ur: bodyUr.includes('<p>') ? bodyUr : '<p>' + bodyUr.split('\n\n').join('</p><p>') + '</p>',
+      featured: featured === 'true', published: published === 'true'
+    };
+
+    status.textContent = 'Saving case...';
+    const casePath = 'alsyed-cases/content/cases/' + slug + '.json';
+    const caseContent = btoa(unescape(encodeURIComponent(JSON.stringify(caseData, null, 2))));
+    await githubPut(token, owner, repo, branch, casePath, caseContent, 'Add case: ' + titleEn);
+
+    // Rebuild cases-index.json
+    status.textContent = 'Updating index...';
+    await rebuildIndex(token, owner, repo, branch, caseData);
+
+    showToast('Case published successfully!', 'success');
+    clearForm();
+  } catch(e) {
+    console.error(e);
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; status.textContent = '';
+  }
+}
+
+async function githubPut(token, owner, repo, branch, path, content, message) {
+  // Check if file exists (to get SHA for update)
+  let sha = null;
+  try {
+    const check = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (check.ok) { const d = await check.json(); sha = d.sha; }
+  } catch(e) {}
+
+  const body = { message, content, branch };
+  if (sha) body.sha = sha;
+
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+    method: 'PUT',
+    headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || 'GitHub API error');
+  }
+  return res.json();
+}
+
+async function rebuildIndex(token, owner, repo, branch, newCase) {
+  // Fetch existing index
+  let cases = [];
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/alsyed-cases/public/cases-index.json`, {
+      headers: { 'Authorization': 'token ' + token }
+    });
+    if (res.ok) {
+      const d = await res.json();
+      cases = JSON.parse(atob(d.content.replace(/\n/g, '')));
+    }
+  } catch(e) {}
+
+  // Add or update
+  const idx = cases.findIndex(c => c.slug === newCase.slug);
+  if (idx >= 0) cases[idx] = newCase; else cases.unshift(newCase);
+
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(cases, null, 2))));
+  await githubPut(token, owner, repo, branch, 'alsyed-cases/public/cases-index.json', content, 'Update index');
+}
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = () => rej(new Error('File read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+// ── LOAD CASES LIST ──
+async function loadCasesList() {
+  const container = document.getElementById('cases-list-container');
+  container.innerHTML = '<div class="empty-state">Loading...</div>';
+  const token = localStorage.getItem('gh_token');
+  const owner = localStorage.getItem('gh_owner') || 'abbasahmed9343-dev';
+  const repo = localStorage.getItem('gh_repo') || 'al-syed-cases';
+  try {
+    let cases = [];
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/alsyed-cases/public/cases-index.json`, {
+      headers: token ? { 'Authorization': 'token ' + token } : {}
+    });
+    if (res.ok) {
+      const d = await res.json();
+      cases = JSON.parse(atob(d.content.replace(/\n/g, '')));
+    }
+    if (!cases.length) { container.innerHTML = '<div class="empty-state">No cases published yet.</div>'; return; }
+    container.innerHTML = `<div class="cases-list">${cases.map(c => `
+      <div class="case-item">
+        <div>
+          <div class="case-item-title">${c.title_en}</div>
+          <div class="case-item-meta">${c.category} — ${c.date} — by ${c.author}</div>
+        </div>
+        <span class="case-tag ${c.outcome}">${c.outcome}</span>
+      </div>`).join('')}</div>`;
+  } catch(e) {
+    container.innerHTML = '<div class="empty-state">Could not load cases. Check settings.</div>';
+  }
+}
+
+// ── CLEAR FORM ──
+function clearForm() {
+  ['f-title-en','f-title-ur','f-outcome-en','f-outcome-ur','f-author','f-summary-en','f-summary-ur','f-body-en','f-body-ur'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-category').value = '';
+  document.getElementById('f-outcome').value = '';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-featured').value = 'false';
+  document.getElementById('f-published').value = 'true';
+  document.getElementById('f-author').value = 'AL SYED Team';
+  document.getElementById('f-cover').value = '';
+  const prev = document.getElementById('img-preview'); prev.src=''; prev.style.display='none';
+}
+
+// ── TOAST ──
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = type; t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 4000);
+}
+</script>
 </body>
 </html>
