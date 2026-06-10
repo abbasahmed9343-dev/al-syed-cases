@@ -1,0 +1,42 @@
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: public/uploads
+public_folder: /uploads
+
+locale: en
+
+collections:
+  - name: "cases"
+    label: "Cases"
+    label_singular: "Case"
+    folder: "content/cases"
+    create: true
+    slug: "{{slug}}"
+    identifier_field: "title_en"
+    fields:
+      - { label: "Title (English)", name: "title_en", widget: "string" }
+      - { label: "عنوان (اردو)", name: "title_ur", widget: "string" }
+      - label: "Category"
+        name: "category"
+        widget: "select"
+        options: ["OSINT", "Legal", "Media", "Community"]
+      - label: "Case Outcome"
+        name: "outcome"
+        widget: "select"
+        options:
+          - { label: "Resolved ✓", value: "resolved" }
+          - { label: "Ongoing ⏳", value: "ongoing" }
+          - { label: "Closed", value: "closed" }
+      - { label: "Outcome Detail (English)", name: "outcome_detail_en", widget: "string", required: false }
+      - { label: "Outcome Detail (Urdu)", name: "outcome_detail_ur", widget: "string", required: false }
+      - { label: "Date", name: "date", widget: "datetime", format: "MMMM YYYY", date_format: "MMMM YYYY", time_format: false }
+      - { label: "Author", name: "author", widget: "string", default: "AL SYED Team" }
+      - { label: "Cover Photo", name: "cover", widget: "image", required: false }
+      - { label: "Summary (English)", name: "summary_en", widget: "text" }
+      - { label: "خلاصہ (اردو)", name: "summary_ur", widget: "text" }
+      - { label: "Full Body (English)", name: "body_en", widget: "markdown" }
+      - { label: "مکمل مضمون (اردو)", name: "body_ur", widget: "markdown" }
+      - { label: "Featured?", name: "featured", widget: "boolean", default: false }
+      - { label: "Published", name: "published", widget: "boolean", default: true }
